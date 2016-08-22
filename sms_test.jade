@@ -1,0 +1,27 @@
+doctype html
+html(ng-app='smsApp')
+    head
+        title SMS TEST
+        meta(http-equiv="X-UA-Compatible", content="IE=edge")
+        meta(charset="utf-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0, maximum-scale=1.0")
+        meta(name="author", content="Ideal")
+        
+    body(ng-controller="firstController")
+        h1 SMS TEST
+        div
+            h3 Send a message {{msg.length}}
+            form(name="cucumber")
+                select(ng-options="idx as num for (idx, num) in numbers" required placeholder="from" ng-model="num_from")
+                input(type="phone" required placeholder="to" ng-model="num_to")
+                input(type="text" required style="display: block; width: 500px;" placeholder="message" ng-model="msg")
+                .button
+                    .submit(ng-click="cod(cucumber)" style="display: inline-block; cursor: pointer; margin-top: 15px; padding: 15px; border: 1px solid #000;") {{cucumber.$valid ? 'Send' : 'Invalid'}}
+        div(style="margin-top: 55px;")
+            h3 Received Messages {{received_sms.length}}
+            div(style="margin: 15px 0;" ng-repeat="sms in received_sms") {{$index}}: {{sms['Body']}}
+
+
+    script(src="/socket.io/socket.io.js")
+    script(src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.19/angular.min.js")
+    script(type="text/javascript" src="/script.js")

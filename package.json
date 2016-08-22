@@ -1,0 +1,29 @@
+{
+  "name": "smstest",
+  "version": "0.0.0",
+  "description": "Mucking about with Twilio",
+  "main": "twilio.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/blairkelly/smstest.git"
+  },
+  "author": "Blair Kelly",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/blairkelly/smstest/issues"
+  },
+  "homepage": "https://github.com/blairkelly/smstest",
+  "dependencies": {
+    "async": "^2.0.1",
+    "body-parser": "^1.15.2",
+    "cookie-parser": "^1.4.3",
+    "express": "^4.14.0",
+    "method-override": "^2.3.6",
+    "morgan": "^1.7.0",
+    "socket.io": "^1.4.8",
+    "twilio": "^2.9.2"
+  }
+}
