@@ -138,7 +138,7 @@ var getMyNumbers = function (cb) {
 
                 if (body.end > 0) {
                     return cb("Number of Twilio numbers exceeds a single page. Time to upgrade the code!");
-                    //possible solution would be to page through all numbers and add them together as you go.
+                    //possible solution would be to increase page size or page through all numbers and add them together as you go.
                 }
                 
                 data.incomingNumbersResponse = body;
