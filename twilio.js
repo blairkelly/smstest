@@ -100,7 +100,7 @@ app.get('/nombres', function (req, res) {
 });
 
 
-var getMyNumbers = function (cb) {
+var get_numbers = function (cb) {
     async.waterfall([
         function (cb) {
             var data = {};
@@ -130,7 +130,6 @@ var getMyNumbers = function (cb) {
         },
         function (data, cb) {
             var uri = 'https://' + process.env.TWILIO_SID + ':' + process.env.TWILIO_AUTH_TOKEN + '@api.twilio.com' + data.incoming_phone_numbers_uri;
-            console.log("\r\nmaking request to", uri, "\r\n");
             request.get(uri, {
                 json: true
             }, function (err, response, body) {
@@ -153,10 +152,58 @@ var getMyNumbers = function (cb) {
     });
 }
 
+var search_for_available_numbers = function (options, cb) {
+    /*
+    var uri = 'https://' + process.env.TWILIO_SID + ':' + process.env.TWILIO_AUTH_TOKEN + '@api.twilio.com' + data.incoming_phone_numbers_uri;
+    request.get(uri, {
+        json: true
+    }, function (err, response, body) {
+        if (err) return cb(err);
+
+        if (body.end > 0) {
+            return cb("Number of Twilio numbers exceeds a single page. Time to upgrade the code!");
+            //possible solution would be to increase page size or page through all numbers and add them together as you go.
+        }
+        
+        data.incomingNumbersResponse = body;
+        data.incoming_phone_numbers = body.incoming_phone_numbers;
+
+        cb(null, data);
+    });
+    */
+    var qOpts = {
+        capabilities: {
+            SMS: true
+        }
+    }
+    if (options.postcode) {
+        qOpts['InPostalCode'] = options.postcode;
+    }
+    else if (options.latitude && options.longitude) {
+        qOpts['nearLatLong'] = options.latitude + ',' + options.longitude;
+    }
+    console.log(qOpts);
+    twilio.availablePhoneNumbers(options.country_code).local.get(qOpts, cb);
+}
 
 setTimeout(function () {
     console.log('testing');
-    getMyNumbers(function (err, numbers) {
+    var phoneSearchOptions = {
+        country_code: 'CA',
+        latitude: 43.6532,
+        longitude: -79.3832
+    };
+    search_for_available_numbers(phoneSearchOptions, function (err, availableNumbers) {
+        if (err) {
+            return console.error("There was an error trying to list AVAILABLE numbers", err);
+        }
+        console.log("Got available numbers:");
+        //console.log(availableNumbers);
+        console.log(availableNumbers.availablePhoneNumbers[0]);
+    });
+
+    return null;
+    get_numbers(function (err, numbers) {
         if (err) {
             return console.error("There was an error trying to list my numbers", err);
         }
