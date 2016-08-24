@@ -153,24 +153,6 @@ var get_numbers = function (cb) {
 }
 
 var search_for_available_numbers = function (options, cb) {
-    /*
-    var uri = 'https://' + process.env.TWILIO_SID + ':' + process.env.TWILIO_AUTH_TOKEN + '@api.twilio.com' + data.incoming_phone_numbers_uri;
-    request.get(uri, {
-        json: true
-    }, function (err, response, body) {
-        if (err) return cb(err);
-
-        if (body.end > 0) {
-            return cb("Number of Twilio numbers exceeds a single page. Time to upgrade the code!");
-            //possible solution would be to increase page size or page through all numbers and add them together as you go.
-        }
-        
-        data.incomingNumbersResponse = body;
-        data.incoming_phone_numbers = body.incoming_phone_numbers;
-
-        cb(null, data);
-    });
-    */
     var qOpts = {
         capabilities: {
             SMS: true
@@ -182,12 +164,63 @@ var search_for_available_numbers = function (options, cb) {
     else if (options.latitude && options.longitude) {
         qOpts['nearLatLong'] = options.latitude + ',' + options.longitude;
     }
-    console.log(qOpts);
-    twilio.availablePhoneNumbers(options.country_code).local.get(qOpts, cb);
+    twilio.availablePhoneNumbers(options.country_code).local.get(qOpts, function (err, response) {
+        if (err) return cb(err);
+        if (response.availablePhoneNumbers.length < 1) {
+            return cb("No available phone numbers were found with the given parameters!");
+        }
+        cb(null, response.availablePhoneNumbers);
+    });
+}
+
+var buy_number = function (options, cb) {
+    search_for_available_numbers(options, function (err, availableNumbers) {
+        if (err) return cb(err);
+        var numberToBy = availableNumbers[0];
+        twilio.incomingPhoneNumbers.create({
+            phoneNumber: numberToBy.phoneNumber,
+            voiceUrl: process.env.TWILIO_VOICE_URL,
+            smsUrl: process.env.TWILIO_SMS_URL
+        }, function (err, newNumber) {
+            if (err) return cb(err);
+            console.log("Bought number: " + newNumber.phoneNumber);
+            cb(null, newNumber);
+        });
+    });
+}
+
+var get_a_number = function (options, cb) {
+    get_numbers(function (err, numbers) {
+        if (err) return cb(err);
+        console.log("got numbers we own", numbers);
+        if (numbers.length) {
+            return cb(null, numbers[0]);
+        }
+        buy_number(options, function (err, boughtNumber) {
+            if (err) return cb(err);
+            get_a_number(options, cb);
+        });
+    });
 }
 
 setTimeout(function () {
+    
     console.log('testing');
+
+    var phoneSearchOptions = {
+        country_code: 'CA',
+        latitude: 43.6532,
+        longitude: -79.3832
+    };
+
+    get_a_number(phoneSearchOptions, function (err, numb) {
+        if (err) {
+            return console.error("Error trying to get/buy number:", err);
+        }
+        console.log("GOT A NUMBER", numb);
+    });
+
+    return null;
     var phoneSearchOptions = {
         country_code: 'CA',
         latitude: 43.6532,
@@ -197,9 +230,9 @@ setTimeout(function () {
         if (err) {
             return console.error("There was an error trying to list AVAILABLE numbers", err);
         }
+        
         console.log("Got available numbers:");
-        //console.log(availableNumbers);
-        console.log(availableNumbers.availablePhoneNumbers[0]);
+        console.log(availableNumbers);
     });
 
     return null;
@@ -210,3 +243,14 @@ setTimeout(function () {
         console.log('\r\nfinito', numbers)
     })    
 }, 555);
+
+
+if (!process.env.TWILIO_VOICE_URL) {
+    process.env.TWILIO_VOICE_URL = 'https://app.ideal.com/twilio/voice/call';
+    console.warn("Warning: TWILIO_VOICE_URL not set, defaulting to " + process.env.TWILIO_VOICE_URL);
+}
+
+if (!process.env.TWILIO_SMS_URL) {
+    process.env.TWILIO_SMS_URL = 'https://app.ideal.com/twilio/sms/reply';
+    console.warn("Warning: TWILIO_SMS_URL not set, defaulting to " + process.env.TWILIO_SMS_URL);
+}
