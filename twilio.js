@@ -1,4 +1,5 @@
 var fs = require('fs');
+var request = require('request');
 
 // Read in env vars when running tests
 fs.readdirSync(__dirname + "/env").forEach(function (file) {
@@ -97,3 +98,68 @@ app.post('/send_sms', function (req, res) {
 app.get('/nombres', function (req, res) {
     res.send({numbers: nombres});
 });
+
+
+var getMyNumbers = function (cb) {
+    async.waterfall([
+        function (cb) {
+            var data = {};
+            twilio.list(function (err, res) {
+                if (err) return cb(err);
+                data.twilio_res = res;
+                if (!res.accounts) {
+                    return cb("Twilio response is missing data. Key: accounts")
+                }
+                for (var i in res.accounts) {
+                    var a = res.accounts[i];
+                    if (a.sid == process.env.TWILIO_SID) {
+                        data.ta = a;
+                    }
+                }
+                if (!data.ta) {
+                    return cb("Twilio response is missing account with SID " + process.env.TWILIO_SID);
+                }
+                var ta = data.ta;
+                if (!ta.subresource_uris) {
+                    return cb("Twilio account " + process.env.TWILIO_SID + " missing subresource_uris key");
+                }
+                data.subresource_uris = ta.subresource_uris;
+                data.incoming_phone_numbers_uri = ta.subresource_uris.incoming_phone_numbers;
+                cb(null, data);
+            });
+        },
+        function (data, cb) {
+            var uri = 'https://' + process.env.TWILIO_SID + ':' + process.env.TWILIO_AUTH_TOKEN + '@api.twilio.com' + data.incoming_phone_numbers_uri;
+            console.log("\r\nmaking request to", uri, "\r\n");
+            request.get(uri, {
+                json: true
+            }, function (err, response, body) {
+                if (err) return cb(err);
+
+                if (body.end > 0) {
+                    return cb("Number of Twilio numbers exceeds a single page. Time to upgrade the code!");
+                    //possible solution would be to page through all numbers and add them together as you go.
+                }
+                
+                data.incomingNumbersResponse = body;
+                data.incoming_phone_numbers = body.incoming_phone_numbers;
+
+                cb(null, data);
+            });
+        }
+    ], function (err, data) {
+        if (err) return cb(err);
+        cb(null, data.incoming_phone_numbers);
+    });
+}
+
+
+setTimeout(function () {
+    console.log('testing');
+    getMyNumbers(function (err, numbers) {
+        if (err) {
+            return console.error("There was an error trying to list my numbers", err);
+        }
+        console.log('\r\nfinito', numbers)
+    })    
+}, 555);
